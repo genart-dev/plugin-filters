@@ -11,6 +11,11 @@ import { vignetteLayerType } from "./vignette.js";
 import { duotoneLayerType } from "./duotone.js";
 import { blurLayerType } from "./blur.js";
 import { chromaticAberrationLayerType } from "./chromatic-aberration.js";
+import { halftoneLayerType } from "./halftone.js";
+import { posterizeLayerType } from "./posterize.js";
+import { ditherLayerType } from "./dither.js";
+import { sharpenLayerType } from "./sharpen.js";
+import { thresholdLayerType } from "./threshold.js";
 
 function textResult(text: string): McpToolResult {
   return { content: [{ type: "text", text }] };
@@ -232,6 +237,127 @@ export const applyChromaticAberrationTool: McpToolDefinition = {
   },
 };
 
+export const applyHalftoneTool: McpToolDefinition = {
+  name: "apply_halftone",
+  description: "Add a halftone filter layer (dot, line, or diamond pattern).",
+  inputSchema: {
+    type: "object",
+    properties: {
+      dotSize:  { type: "number", description: "Dot/cell size 2–30 px (default: 6)." },
+      pattern:  { type: "string", enum: ["dot", "line", "diamond"], description: 'Pattern type (default: "dot").' },
+      angle:    { type: "number", description: "Rotation angle 0–180 degrees (default: 45)." },
+      intensity: { type: "number", description: "Effect intensity 0–1 (default: 1.0)." },
+      dotColor: { type: "string", description: 'Dot color hex (default: "#000000").' },
+      bgColor:  { type: "string", description: 'Background color hex (default: "#ffffff").' },
+    },
+  } satisfies JsonSchema,
+
+  async handler(input: Record<string, unknown>, context: McpToolContext): Promise<McpToolResult> {
+    const defaults = halftoneLayerType.createDefault();
+    const properties = { ...defaults, ...filterKnown(input, ["dotSize", "pattern", "angle", "intensity", "dotColor", "bgColor"]) };
+    const layer = createFilterLayer("filter:halftone", "Halftone", properties, context);
+    context.layers.add(layer);
+    context.emitChange("layer-added");
+    return textResult(`Added halftone layer '${layer.id}' (pattern: ${properties.pattern}).`);
+  },
+};
+
+export const applyPosterizeTool: McpToolDefinition = {
+  name: "apply_posterize",
+  description: "Add a posterize filter layer that reduces the number of color levels.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      levels:    { type: "number", description: "Color levels 2–32 (default: 4)." },
+      intensity: { type: "number", description: "Effect intensity 0–1 (default: 1.0)." },
+    },
+  } satisfies JsonSchema,
+
+  async handler(input: Record<string, unknown>, context: McpToolContext): Promise<McpToolResult> {
+    const defaults = posterizeLayerType.createDefault();
+    const properties = { ...defaults, ...filterKnown(input, ["levels", "intensity"]) };
+    const layer = createFilterLayer("filter:posterize", "Posterize", properties, context);
+    context.layers.add(layer);
+    context.emitChange("layer-added");
+    return textResult(`Added posterize layer '${layer.id}' (levels: ${properties.levels}).`);
+  },
+};
+
+export const applyDitherTool: McpToolDefinition = {
+  name: "apply_dither",
+  description: "Add a dither filter layer (Floyd-Steinberg, ordered/Bayer, or random).",
+  inputSchema: {
+    type: "object",
+    properties: {
+      method:    { type: "string", enum: ["floyd-steinberg", "ordered", "random"], description: 'Dither method (default: "floyd-steinberg").' },
+      levels:    { type: "number", description: "Color levels 2–16 (default: 2)." },
+      intensity: { type: "number", description: "Effect intensity 0–1 (default: 1.0)." },
+      seed:      { type: "number", description: "Random seed for random dither (default: 0)." },
+    },
+  } satisfies JsonSchema,
+
+  async handler(input: Record<string, unknown>, context: McpToolContext): Promise<McpToolResult> {
+    const defaults = ditherLayerType.createDefault();
+    const properties = { ...defaults, ...filterKnown(input, ["method", "levels", "intensity", "seed"]) };
+    const layer = createFilterLayer("filter:dither", "Dither", properties, context);
+    context.layers.add(layer);
+    context.emitChange("layer-added");
+    return textResult(`Added dither layer '${layer.id}' (method: ${properties.method}).`);
+  },
+};
+
+export const applySharpenTool: McpToolDefinition = {
+  name: "apply_sharpen",
+  description: "Add an unsharp mask sharpening filter layer.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      amount: { type: "number", description: "Sharpening amount 0–2 (default: 0.5)." },
+      radius: { type: "number", description: "Blur radius 1–5 px (default: 1)." },
+    },
+  } satisfies JsonSchema,
+
+  async handler(input: Record<string, unknown>, context: McpToolContext): Promise<McpToolResult> {
+    const defaults = sharpenLayerType.createDefault();
+    const properties = { ...defaults, ...filterKnown(input, ["amount", "radius"]) };
+    const layer = createFilterLayer("filter:sharpen", "Sharpen", properties, context);
+    context.layers.add(layer);
+    context.emitChange("layer-added");
+    return textResult(`Added sharpen layer '${layer.id}'.`);
+  },
+};
+
+export const applyThresholdTool: McpToolDefinition = {
+  name: "apply_threshold",
+  description: "Add a threshold filter layer that converts to binary black/white (or custom colors).",
+  inputSchema: {
+    type: "object",
+    properties: {
+      threshold: { type: "number", description: "Luminance threshold 0–255 (default: 128)." },
+      intensity: { type: "number", description: "Effect intensity 0–1 (default: 1.0)." },
+      lowColor:  { type: "string", description: 'Color for dark values hex (default: "#000000").' },
+      highColor: { type: "string", description: 'Color for light values hex (default: "#ffffff").' },
+    },
+  } satisfies JsonSchema,
+
+  async handler(input: Record<string, unknown>, context: McpToolContext): Promise<McpToolResult> {
+    const defaults = thresholdLayerType.createDefault();
+    const properties = { ...defaults, ...filterKnown(input, ["threshold", "intensity", "lowColor", "highColor"]) };
+    const layer = createFilterLayer("filter:threshold", "Threshold", properties, context);
+    context.layers.add(layer);
+    context.emitChange("layer-added");
+    return textResult(`Added threshold layer '${layer.id}'.`);
+  },
+};
+
+function filterKnown(input: Record<string, unknown>, keys: string[]): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const k of keys) {
+    if (input[k] !== undefined) out[k] = input[k];
+  }
+  return out;
+}
+
 export const listFiltersTool: McpToolDefinition = {
   name: "list_filters",
   description: "List all available filter types and their configurable properties.",
@@ -250,6 +376,11 @@ export const listFiltersTool: McpToolDefinition = {
       duotoneLayerType,
       blurLayerType,
       chromaticAberrationLayerType,
+      halftoneLayerType,
+      posterizeLayerType,
+      ditherLayerType,
+      sharpenLayerType,
+      thresholdLayerType,
     ];
     const lines = filters.map((f) => {
       const props = f.properties.map((p) => p.key).join(", ");
@@ -265,5 +396,10 @@ export const filterMcpTools: McpToolDefinition[] = [
   applyDuotoneTool,
   applyBlurTool,
   applyChromaticAberrationTool,
+  applyHalftoneTool,
+  applyPosterizeTool,
+  applyDitherTool,
+  applySharpenTool,
+  applyThresholdTool,
   listFiltersTool,
 ];

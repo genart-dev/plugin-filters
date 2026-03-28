@@ -58,8 +58,8 @@ describe("filters plugin", () => {
   it("exports a valid DesignPlugin object", () => {
     expect(filtersPlugin.id).toBe("filters");
     expect(filtersPlugin.tier).toBe("free");
-    expect(filtersPlugin.layerTypes).toHaveLength(5);
-    expect(filtersPlugin.mcpTools).toHaveLength(6);
+    expect(filtersPlugin.layerTypes).toHaveLength(10);
+    expect(filtersPlugin.mcpTools).toHaveLength(11);
   });
 
   it("all layer types have unique typeIds", () => {
